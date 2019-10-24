@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sncinfo.userMng.mapper.UserMapper">
+
+	<resultMap id="userMap" type="com.sncinfo.userMng.vo.UserVO">
+		<result property="userId" column="user_id"/>
+		<result property="userNm" column="user_nm"/>
+		<result property="userPwd" column="user_pwd"/>
+		<result property="pwdChgDt" column="pwd_chg_Dt" />
+		<result property="errCnt" column="err_cnt" />
+		<result property="accessDt" column="access_dt"/>
+		<result property="telNum" column="tel_num"/>
+		<result property="mailAddr" column="mail_addr"/>
+		<result property="ipAddr" column="ip_addr"/>
+		<result property="userOrgan" column="user_organ"/>
+		<result property="userDpt" column="user_dpt"/>
+		<result property="userPrivil" column="user_privil"/>
+		<result property="apprGbn" column="appr_gbn"/>
+		<result property="useFlag" column="use_flag"/>
+		<result property="apprGbn" column="appr_gbn"/>
+		<result property="insDt" column="ins_dt"/>
+		<result property="insTm" column="ins_tm"/>
+	</resultMap>
+
+	<sql id="pagingSuffix">
+		LIMIT #{recordCountPerPage} OFFSET #{firstIndex}
+	</sql>
+
+	<!-- 사용자 조회 -->
+	<select id="selectUserInfoList" resultType="egovMap">
+
+		SELECT a.*
+	  		,b.* 
+	  		,c.std_name as user_privil_nm
+	  		,case when a.appr_gbn = 'Y' then '승인' else '미승인'end as appr_gbn_kor
+	  		,case when a.use_flag = 'Y' then '사용' else '미사용'end as use_flag_kor
+			,current_date - access_dt::date as diff_access_days
+		FROM USER_INFO a left outer join
+			( 
+				select std_code, std_name 
+				from std_code where std_grp = 'PRI' and use_flag = 'Y' 
+			) c on (a.user_privil = c.std_code), 
+			(
+				select a.std_code as organ_code
+					,a.std_name as organ_nm
+					,a.seq as seq
+					,b.std_code as dpt_code
+					,b.std_name as dpt_nm
+					,b.seq as dpt_seq
+				from std_code a, std_code b
+				where a.std_grp = 'ORGAN'
+					and a.std_code = b.std_grp
+					and a.use_flag = 'Y'
+					and b.use_flag = 'Y'
+			) b
+		WHERE a.user_dpt = b.dpt_code
+		<if test="searchKeyword != null and searchKeyword != ''">
+			<choose>
+				<when test="searchCondition == 0">
+					AND (A.USER_ID LIKE '%' || #{searchKeyword} || '%'
+					OR A.USER_NM LIKE '%' || #{searchKeyword} || '%'
+					OR B.ORGAN_NM LIKE '%' || #{searchKeyword} || '%'
+					OR B.DPT_NM LIKE '%' || #{searchKeyword} || '%'
+					OR C.STD_NAME LIKE '%' || #{searchKeyword} || '%' )
+				</when>
+				<when test="searchCondition == 1">
+					AND A.USER_ID LIKE '%' || #{searchKeyword} || '%'
+				</when>
+				<when test="searchCondition == 2">
+					AND A.USER_NM LIKE '%' || #{searchKeyword} || '%'
+				</when>
+				<when test="searchCondition == 3">
+					AND B.ORGAN_NM LIKE '%' || #{searchKeyword} || '%'
+				</when>
+				<when test="searchCondition == 4">
+					AND B.DPT_NM LIKE '%' || #{searchKeyword} || '%'
+				</when>
+				<when test="searchCondition == 5">
+					AND C.STD_NAME LIKE '%' || #{searchKeyword} || '%'
+				</when>
+			</choose>
+		</if>
+		<if test="searchCondition == 6">
+			AND a.appr_gbn = 'N'
+		</if>
+
+		<choose>
+			<when test="sortKey == 'date'">
+				ORDER BY A.INS_DT ${dateOrder}, A.INS_TM ${dateOrder}
+			</when>
+			<when test="sortKey == 'organ'">
+				ORDER BY B.seq ${organOrder}, B.dpt_seq ${organOrder}
+			</when>
+			<otherwise>
+				ORDER BY diff_access_days ${accessOrder}
+			</otherwise>
+		</choose>
+
+		<include refid="pagingSuffix" />
+	</select>
+
+	<!-- 페이징 -->
+	<select id="userSelectListTotCnt" resultType="int">
+	
+		SELECT count(*)
+		FROM USER_INFO a left outer join 
+			( 
+				select std_code, std_name 
+				from std_code where std_grp = 'PRI' and use_flag = 'Y' 
+			) c on (a.user_privil = c.std_code), 
+			(
+				select a.std_code as organ_code
+					,a.std_name as organ_nm
+					,a.seq as seq
+					,b.std_code as dpt_code
+					,b.std_name as dpt_nm
+				from std_code a, std_code b
+				where a.std_grp = 'ORGAN'
+					and a.std_code = b.std_grp
+					and a.use_flag = 'Y'
+					and b.use_flag = 'Y'
+			) b		    
+		WHERE a.user_dpt = b.dpt_code
+
+		<if test="searchKeyword != null and searchKeyword != ''">
+			<choose>
+				<when test="searchCondition == 0">
+					AND (A.USER_ID LIKE '%' || #{searchKeyword} || '%'
+					OR A.USER_NM LIKE '%' || #{searchKeyword} || '%'
+					OR B.ORGAN_NM LIKE '%' || #{searchKeyword} || '%'
+					OR B.DPT_NM LIKE '%' || #{searchKeyword} || '%'
+					OR C.STD_NAME LIKE '%' || #{searchKeyword} || '%' )
+				</when>
+				<when test="searchCondition == 1">
+					AND A.USER_ID LIKE '%' || #{searchKeyword} || '%'
+				</when>
+				<when test="searchCondition == 2">
+					AND A.USER_NM LIKE '%' || #{searchKeyword} || '%'
+				</when>
+				<when test="searchCondition == 3">
+					AND B.ORGAN_NM LIKE '%' || #{searchKeyword} || '%'
+				</when>
+				<when test="searchCondition == 4">
+					AND B.DPT_NM LIKE '%' || #{searchKeyword} || '%'
+				</when>
+				<when test="searchCondition == 5">
+					AND C.STD_NAME LIKE '%' || #{searchKeyword} || '%'
+				</when>
+			</choose>
+		</if>
+		<if test="searchCondition == 6">
+			AND a.appr_gbn = 'N'
+		</if>
+	</select>
+
+	<!-- 조직 보여주기 -->
+	<select id="selectViewOrgan" resultType="egovMap">
+
+		SELECT STD_CODE,STD_NAME
+		FROM STD_CODE
+		where std_grp ='ORGAN'
+		ORDER BY SEQ
+
+	</select>
+
+	<!-- 권한 보여주기 -->
+	<select id="selectPower" resultType="egovMap">
+
+		SELECT STD_CODE, STD_NAME
+		FROM STD_CODE
+		WHERE STD_GRP = 'PRI'
+		
+	</select>
+
+	<!-- 부서 보여주기 -->
+	<select id="selectstdName" resultType="egovMap">
+
+		SELECT STD_CODE, STD_NAME
+		FROM STD_CODE
+		WHERE STD_GRP LIKE #{std} || '%'
+
+	</select>
+
+	<!-- 아이디 중복확인 -->
+	<select id="idCheck" resultType="string">
+	
+		select user_id from user_info where user_id = #{userId}
+		
+	</select>
+
+	<!-- 사용자 등록 -->
+	<insert id="userNoticeSave">
+
+		INSERT INTO USER_INFO
+		(
+			USER_ID
+			,USER_NM
+			,USER_PWD
+			,PWD_CHG_DT
+			,ACCESS_DT
+			,TEL_NUM
+			,MAIL_ADDR
+			,IP_ADDR
+			,USER_ORGAN
+			,USER_DPT
+			,USER_PRIVIL
+			,APPR_GBN
+			,USE_FLAG
+			,INS_USER
+			,INS_DT
+			,INS_TM
+			,UPT_USER
+			,UPT_DT
+			,UPT_TM
+		)
+		VALUES
+		(
+			#{userId}
+			,#{userNm}
+			,fn_encrypt(#{userPwd})
+			,TO_CHAR(now(),'YYYYMMDD')
+			,TO_CHAR(now(), 'YYYYMMDD')
+			,#{telNum}
+			,#{mailAddr}
+			,#{ipAddr}
+			,#{userOrgan}
+			,#{userDpt}
+			,#{userPrivil}
+			,#{apprGbn}
+			,#{useFlag}
+			,#{insUser}
+			,TO_CHAR(now(), 'YYYYMMDD')
+			,TO_CHAR(now(), 'HH24MISS')
+			,#{uptUser}
+			,TO_CHAR(now(), 'YYYYMMDD')
+			,TO_CHAR(now(), 'HH24MISS')
+		)
+
+	</insert>
+	
+	<!-- 권한승인 insert -->
+	<insert id="privilInsert">
+	
+		INSERT INTO USER_PRIVIL_LOG
+		(
+			privil_app_user, privil_user, 
+			user_privil, ins_dt, ins_tm
+		)
+		VALUES
+		(
+			#{insUser}, #{userId}, 
+			#{userPrivil}, TO_CHAR(now(), 'YYYYMMDD'), TO_CHAR(now(), 'HH24MISS')
+		)
+	
+	</insert>
+	
+	<!-- 사용자 디테일조회 -->
+	<select id="selectDetailUser" resultMap="userMap">
+	
+		SELECT USER_ID
+	 		  ,USER_NM
+	 		  ,USER_PWD
+	 		  ,PWD_CHG_DT
+	 		  ,TEL_NUM
+	 		  ,MAIL_ADDR
+	 		  ,IP_ADDR
+	 		  ,USER_ORGAN
+	 		  ,USER_DPT
+	 		  ,USER_PRIVIL
+	 		  ,APPR_GBN
+	 		  ,ACCESS_DT
+	 		  ,USE_FLAG
+	 		  ,ERR_CNT
+	 		  ,INS_DT
+	 		  ,INS_TM
+ 		  FROM USER_INFO
+ 		  WHERE USER_ID = #{userId}
+	
+	</select>
+	
+	<!-- 사용자 삭제 -->
+	<delete id="deleteUser">
+	
+		 DELETE FROM USER_INFO 
+		 	WHERE USER_ID = #{userId}
+	
+	</delete>
+	
+	<!-- 사용자 수정 -->
+	<update id="updateUser">
+		
+		
+		UPDATE USER_INFO 
+			set USER_NM = #{userNm},
+			<if test="userPwd != null and userPwd != ''">
+				USER_PWD = fn_encrypt(#{userPwd}),
+			</if>
+			PWD_CHG_DT = TO_CHAR(now(), 'YYYYMMDD'),
+			TEL_NUM = #{telNum},
+			MAIL_ADDR = #{mailAddr},
+			IP_ADDR = #{ipAddr},
+			USER_ORGAN = #{userOrgan},
+			USER_DPT = #{userDpt},
+			USER_PRIVIL = #{userPrivil},
+			APPR_GBN = #{apprGbn},
+			USE_FLAG = #{useFlag},
+			UPT_USER = #{uptUser},
+			UPT_DT = TO_CHAR(now(), 'YYYYMMDD'),
+			UPT_TM = TO_CHAR(now(), 'HH24MISS')
+		WHERE USER_ID = #{userId}
+		
+	</update>
+	
+	<!-- 권한수정 체크 -->
+	<select id="privilCheck" resultType="string">
+	
+		select user_privil 
+		from user_info 
+		where user_id = #{userId}
+			and user_privil = #{userPrivil}
+		
+	</select>
+	
+	<!-- 비밀번호 최근변경일자, 최근접속일자 조회 -->
+	<select id="selectDateSearchUserInfo" resultType="egovMap">
+		SELECT 
+			(SELECT COALESCE(MAX(err_cnt), 0) 
+			FROM USER_INFO 
+			WHERE USER_ID = #{userId} ) as err_cnt
+						  ,
+			(select current_date - pwd_chg_dt::date as pwd_chg_dt
+			from user_info
+			where user_id = #{userId} ) as diff_pwd_days
+						  ,
+			(select current_date - access_dt::date as access_dt
+			from user_info
+			where user_id = #{userId} ) as diff_access_days
+						  ,
+			(select COALESCE(MAX(appr_gbn), 'N')
+			from user_info
+			where user_id = #{userId} ) as appr_gbn
+						  ,
+			(select COALESCE(MAX(use_flag), 'N')
+			from user_info
+			where user_id = #{userId} ) as use_flag
+		FROM USER_INFO
+		GROUP BY 1, 2
+
+	</select>
+	<!-- 로그인오류 초기화(비밀번호5회 오류) -->
+	<update id="updatePasswordUserInfoInit">
+	
+		update user_info
+		set user_pwd = fn_encrypt(#{userId})
+		   ,pwd_chg_dt = to_char(current_date, 'yyyymmdd')
+		   ,access_dt = to_char(current_date, 'yyyymmdd')
+		   ,appr_gbn = 'Y'
+		   ,use_flag = 'Y'
+		   ,err_cnt = 0
+		   ,upt_user = #{uptUser}
+		   ,upt_dt = to_char(current_date, 'yyyymmdd')
+		   ,upt_tm = to_char(now(), 'hh24miss')
+		where user_id = #{userId}
+	
+	</update>
+	
+	<!-- 로그인오류 초기화(3개월동안 비밀번호 변경x) -->
+	<update id="updatePwdChgDtUserInfoInit">
+	
+		update user_info
+		set user_pwd = fn_encrypt(#{userId})
+		   ,pwd_chg_dt = to_char(current_date, 'yyyymmdd')
+		   ,appr_gbn = 'Y'
+		   ,use_flag = 'Y'
+		   ,upt_user = #{uptUser}
+		   ,upt_dt = to_char(current_date, 'yyyymmdd')
+		   ,upt_tm = to_char(now(), 'hh24miss')
+		where user_id = #{userId}
+	
+	</update>
+	
+	<!-- 로그인오류 초기화(3개월동안 접속x) -->
+	<update id="updateAccessDtUserInfoInit">
+	
+		update user_info
+		set access_dt = to_char(current_date, 'yyyymmdd')
+		   ,appr_gbn = 'Y'
+		   ,use_flag = 'Y'
+		   ,upt_user = #{uptUser}
+		   ,upt_dt = to_char(current_date, 'yyyymmdd')
+		   ,upt_tm = to_char(now(), 'hh24miss')
+		where user_id = #{userId}
+	
+	</update>
+	
+	<select id="userListExcelDownload" resultType="egovMap">
+		SELECT a.*
+	  		,b.* 
+	  		,c.std_name as user_privil_nm
+	  		,case when a.appr_gbn = 'Y' then '승인' else '미승인'end as appr_gbn_kor
+	  		,case when a.use_flag = 'Y' then '사용' else '미사용'end as use_flag_kor
+			,current_date - access_dt::date as diff_access_days
+		FROM USER_INFO a left outer join 
+			( 
+				select std_code, std_name 
+				from std_code where std_grp = 'PRI' and use_flag = 'Y' 
+			) c on (a.user_privil = c.std_code), 
+			(
+				select a.std_code as organ_code
+					,a.std_name as organ_nm
+					,a.seq as seq
+					,b.std_code as dpt_code
+					,b.std_name as dpt_nm
+					,b.seq as dpt_seq
+				from std_code a, std_code b
+				where a.std_grp = 'ORGAN'
+					and a.std_code = b.std_grp
+					and a.use_flag = 'Y'
+					and b.use_flag = 'Y'
+			) b		    
+		WHERE a.user_dpt = b.dpt_code
+		<if test="searchKeyword != null and searchKeyword != ''">
+			<choose>
+				<when test="searchCondition == 0">
+					AND (A.USER_ID LIKE '%' || #{searchKeyword} || '%'
+					OR A.USER_NM LIKE '%' || #{searchKeyword} || '%'
+					OR B.ORGAN_NM LIKE '%' || #{searchKeyword} || '%'
+					OR B.DPT_NM LIKE '%' || #{searchKeyword} || '%'
+					OR C.STD_NAME LIKE '%' || #{searchKeyword} || '%' )
+				</when>
+				<when test="searchCondition == 1">
+					AND A.USER_ID LIKE '%' || #{searchKeyword} || '%'
+				</when>
+				<when test="searchCondition == 2">
+					AND A.USER_NM LIKE '%' || #{searchKeyword} || '%'
+				</when>
+				<when test="searchCondition == 3">
+					AND B.ORGAN_NM LIKE '%' || #{searchKeyword} || '%'
+				</when>
+				<when test="searchCondition == 4">
+					AND B.DPT_NM LIKE '%' || #{searchKeyword} || '%'
+				</when>
+				<when test="searchCondition == 5">
+					AND C.STD_NAME LIKE '%' || #{searchKeyword} || '%'
+				</when>
+			</choose>
+		</if>
+
+		<choose>
+			<when test="sortKey == 'date'">
+				ORDER BY A.INS_DT ${dateOrder}, A.INS_TM ${dateOrder}
+			</when>
+			<when test="sortKey == 'organ'">
+				ORDER BY B.seq ${organOrder}, B.dpt_seq ${organOrder}
+			</when>
+			<otherwise>
+				ORDER BY diff_access_days ${accessOrder}
+			</otherwise>
+		</choose>
+
+	</select>
+
+</mapper>

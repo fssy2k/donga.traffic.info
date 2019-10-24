@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xsi:schemaLocation="http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.0.xsd
+		http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-4.0.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+	
+	<beans profile="local">
+		<!-- 로컬 서버 -->
+		<bean id="dataSource" class="org.apache.tomcat.dbcp.dbcp2.BasicDataSource" destroy-method="close">
+			<property name="driverClassName" value="net.sf.log4jdbc.DriverSpy"/>
+			<property name="url" value="jdbc:log4jdbc:postgresql://sncinfo.iptime.org:6432/gis" />
+			<property name="username" value="postgres" />
+			<property name="password" value="postgres" />
+		</bean>
+	</beans>
+	
+	<beans profile="dev">
+		<!-- 개발서버 -->
+		<bean id="dataSource" class="org.apache.tomcat.dbcp.dbcp2.BasicDataSource" destroy-method="close">
+			<property name="driverClassName" value="net.sf.log4jdbc.DriverSpy"/>
+			<property name="url" value="jdbc:log4jdbc:postgresql://sncinfo.iptime.org:6432/gis" />
+			<property name="username" value="postgres" />
+			<property name="password" value="postgres" />
+			<property name="initialSize" value="8" />
+			<property name="minIdle" value="8" />
+			<property name="maxTotal" value="10" />
+			<property name="maxWaitMillis" value="5000" />
+			<!-- 유효 검사용 쿼리-->
+			<property name="validationQuery" value="select 1" />
+			<property name="testWhileIdle" value="true" />
+			<!-- 밀리세컨드 단위 interval (60분) -->
+			<property name="timeBetweenEvictionRunsMillis" value="3600000" />
+		</bean>
+	</beans>
+   	
+	<beans profile="prd">
+		<!-- 운영서버 -->
+		<bean id="dataSource" class="org.apache.tomcat.dbcp.dbcp2.BasicDataSource" destroy-method="close">
+			<property name="driverClassName" value="net.sf.log4jdbc.DriverSpy"/>
+			<property name="url" value="jdbc:log4jdbc:postgresql://99.1.5.40:9095/gis" />
+			<property name="username" value="postgres" />
+			<property name="password" value="postgres" />
+			<property name="initialSize" value="8" />
+			<property name="minIdle" value="8" />
+			<property name="maxTotal" value="10" />
+			<property name="maxWaitMillis" value="5000" />
+			<!-- 유효 검사용 쿼리-->
+			<property name="validationQuery" value="select 1" />
+			<property name="testWhileIdle" value="true" />
+			<!-- 밀리세컨드 단위 interval (60분) -->
+			<property name="timeBetweenEvictionRunsMillis" value="3600000" />
+		</bean>
+		
+		<!-- <jee:jndi-lookup id="dataSource" jndi-name="jdbc/kamco" resource-ref="true">
+			<jee:environment>
+				java.naming.factory.initial=jeus.jndi.JEUSContextFactory
+				java.naming.provider.url=99.1.5.13:9736
+			</jee:environment>
+		</jee:jndi-lookup> -->
+	</beans>
+   	    	
+</beans>
