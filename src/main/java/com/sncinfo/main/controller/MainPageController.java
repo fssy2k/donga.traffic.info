@@ -13,6 +13,7 @@ public class MainPageController
 	@RequestMapping(value = "/mainPage.do")
 	public String mainPage(HttpServletRequest request, HttpServletResponse response, ModelMap model) throws Exception 
 	{
+		System.out.println("gis main view");
 		return "mainGis";
 	}
 }
