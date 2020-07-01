@@ -14,7 +14,7 @@
 		<egovframework.rte.version>3.7.0</egovframework.rte.version>
 		<org.apache.poi.version>3.16</org.apache.poi.version>
 		<geotools.version>23-SNAPSHOT</geotools.version>
-		<quartz.version>2.2.1</quartz.version>
+		<quartz.version>2.3.2</quartz.version>
 	</properties>
 
 	<repositories>
